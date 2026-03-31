@@ -12,7 +12,7 @@ public_users.post("/register", (req,res) => {
         const existingUser = users.filter((user)=> user.username === username)
         if(existingUser.length===0){
             users.push({"username":req.body.username,"password":req.body.password});
-            return res.status(201).json({message:"USer Created successfully"})
+            return res.status(201).json({message:"User Created successfully"})
         }
         else{
           return res.status(400).json({message:"Already exists"})
