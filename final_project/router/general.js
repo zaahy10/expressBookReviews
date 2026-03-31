@@ -2,65 +2,113 @@ const express = require('express');
 let books = require("./booksdb.js");
 let isValid = require("./auth_users.js").isValid;
 let users = require("./auth_users.js").users;
+const axios = require("axios");
 const public_users = express.Router();
 
+public_users.use(express.json());
 
 public_users.post("/register", (req,res) => {
-    const username = req.body.username;
-    const password = req.body.password;
-    if(username&&password){
-        const existingUser = users.filter((user)=> user.username === username)
-        if(existingUser.length===0){
-            users.push({"username":req.body.username,"password":req.body.password});
-            return res.status(201).json({message:"User Created successfully"})
+    let username = req.body.username;
+    let password = req.body.password;
+    console.log(req.body)
+    if(username && password){
+        if(isValid(username)){
+            users.push({username:username,password:password});
+            return res.status(200).json({message: "User registered successfully"});
         }
         else{
-          return res.status(400).json({message:"Already exists"})
+            return res.status(400).json({message: "Username already exists"});
         }
+    }else{
+        return res.status(400).json({message: "Username or password not provided"});
     }
-    else if(!username && !password){
-      return res.status(400).json({message:"Bad request"})
-    }
-    else if(!username || !password){
-      return res.status(400).json({message:"Check username and password"})
-    }  
+
   });
 
 // Get the book list available in the shop
-public_users.get('/',async (req, res) => {
-    await res.send(JSON.stringify(books,null,4));
+public_users.get('/',async function (req, res) {
+    
+    axios.get('http://localhost:5000/books').then(
+      (responseBooks)=>{
+        return res.status(200).send(JSON.stringify(responseBooks.data,null , 4));
+      }
+    ).catch(e=>
+      res.status(404).send("Cant get books <br>  "+ e)
+      )
 });
 
 // Get book details based on ISBN
-public_users.get('/isbn/:isbn', async (req, res) => {
-    const ISBN = req.params.isbn;
-    await res.send(books[ISBN])
+public_users.get('/isbn/:isbn', async function (req, res) {
+    let isbn = req.params.isbn;
+
+    try {
+      const response = await axios.get('http://localhost:5000/books');
+  
+      if (response.data[isbn]) {
+        return res.status(200).send(JSON.stringify(response.data[isbn], null, 4));
+      } else {
+        return res.status(404).send("No book found with ISBN " + isbn);
+      }
+    } catch (error) {
+      // Handle errors, e.g., network issues or API errors
+      console.error(error);
+      return res.status(500).send("Internal Server Error");
+    }
  });
   
 // Get book details based on author
-public_users.get('/author/:author',async (req, res) => {
-  let booksByAuthor = {}
-  const author = req.params.author
-  let i=1;
-  for(let bookid in books){
-      if(books[bookid].author === author ){
-        booksByAuthor[i++] = books[bookid];
-      }
-    }
-    await res.send(JSON.stringify(booksByAuthor))
-});
-
-// Get all books based on title
-public_users.get('/title/:title',async (req, res) => {
-    let booksByTitle = {}
-    const title = req.params.title
-    let i=1;
-    for(let bookid in books){
-        if(books[bookid].title === title ){
-          booksByTitle[i++] = books[bookid];
+public_users.get('/author/:author', async function (req, res) {
+    // Write your code here
+    let author = req.params.author;
+    let booksByAuthor = [];
+  
+    try {
+      // Assuming the API endpoint for getting all books is http://localhost:5000/books
+      const response = await axios.get('http://localhost:5000/books');
+  
+      for (let isbn in response.data) {
+        if (response.data[isbn].author == author) {
+          booksByAuthor.push(response.data[isbn]);
         }
       }
-      await res.send(JSON.stringify(booksByTitle))
+  
+      if (booksByAuthor.length > 0) {
+        return res.status(200).send(JSON.stringify(booksByAuthor, null, 4));
+      } else {
+        return res.status(404).send("No book found with author " + author);
+      }
+    } catch (error) {
+      // Handle errors, e.g., network issues or API errors
+      console.error(error);
+      return res.status(500).send("Internal Server Error");
+    }
+  });
+
+// Get all books based on title
+public_users.get('/title/:title',async function (req, res) {
+    let title = req.params.title;
+    let booksByTitle = [];
+  
+    try {
+      // Assuming the API endpoint for getting all books is http://localhost:5000/books
+      const response = await axios.get('http://localhost:5000/books');
+  
+      for (let isbn in response.data) {
+        if (response.data[isbn].title == title) {
+          booksByTitle.push(response.data[isbn]);
+        }
+      }
+  
+      if (booksByTitle.length > 0) {
+        return res.status(200).send(JSON.stringify(booksByTitle, null, 4));
+      } else {
+        return res.status(404).send("No book found with title " + title);
+      }
+    } catch (error) {
+      // Handle errors, e.g., network issues or API errors
+      console.error(error);
+      return res.status(500).send("Internal Server Error");
+    }
 });
 
 //  Get book review
