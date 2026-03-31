@@ -38,7 +38,7 @@ public_users.get('/isbn/:isbn', async (req, res) => {
  });
   
 // Get book details based on author
-public_users.get('/author/:author',function (req, res) {
+public_users.get('/author/:author',async (req, res) => {
   let booksByAuthor = {}
   const author = req.params.author
   let i=1;
@@ -47,7 +47,7 @@ public_users.get('/author/:author',function (req, res) {
         booksByAuthor[i++] = books[bookid];
       }
     }
-    return res.send(JSON.stringify(booksByAuthor))
+    await res.send(JSON.stringify(booksByAuthor))
 });
 
 // Get all books based on title
